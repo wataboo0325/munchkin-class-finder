@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>クラス診断｜ダンススタジオマンチカン</title>
+<style>
+  /* === ブランド色はここだけ変える（HPに合わせる） === */
+  :root{
+    --accent:#e8467c;
+    --accent-dark:#c22f61;
+    --line:#06c755;
+    --ink:#222;
+    --sub:#666;
+    --bg:#fff;
+    --card:#fff;
+    --border:#e5e5e5;
+    --soft:#faf7f8;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;-webkit-text-size-adjust:100%}
+  .wrap{max-width:680px;margin:0 auto;padding:20px 16px 60px}
+  h1{font-size:20px;margin:0 0 4px}
+  .lead{font-size:13px;color:var(--sub);margin:0 0 20px}
+  .bar{height:6px;background:#eee;border-radius:3px;overflow:hidden;margin-bottom:22px}
+  .bar > i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+  .step{display:none}
+  .step.on{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .q{font-size:17px;font-weight:700;margin:0 0 4px}
+  .hint{font-size:12px;color:var(--sub);margin:0 0 14px}
+  .opts{display:grid;gap:10px}
+  .opts.two{grid-template-columns:1fr 1fr}
+  .opt{display:block;position:relative;border:2px solid var(--border);border-radius:var(--radius);padding:14px 14px;background:var(--card);cursor:pointer;font-size:15px;text-align:left;width:100%;transition:.15s}
+  .opt small{display:block;font-size:12px;color:var(--sub);font-weight:400;margin-top:2px}
+  .opt:hover{border-color:#ccc}
+  .opt.sel{border-color:var(--accent);background:var(--soft)}
+  .opt.sel::after{content:"✓";position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:700}
+  /* 複数選べる質問は、選択欄を四角いチェックマスにして一目で分かるようにする */
+  .opt.multi{padding-left:46px}
+  .opt.multi::after{display:none}
+  .opt .box{position:absolute;left:15px;top:50%;transform:translateY(-50%);width:21px;height:21px;
+    border:2px solid #ccc;border-radius:6px;background:#fff;transition:.15s}
+  .opt.multi.sel .box{background:var(--accent);border-color:var(--accent)}
+  .opt.multi.sel .box::after{content:"✓";position:absolute;inset:0;color:#fff;font-size:14px;font-weight:700;
+    line-height:21px;text-align:center}
+  .multi-badge{display:inline-block;background:var(--accent);color:#fff;font-size:11px;font-weight:700;
+    border-radius:999px;padding:2px 9px;margin-left:6px;vertical-align:2px}
+  /* 何人目の診断か */
+  .who-tab{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .who-tab span{font-size:12px;background:#f2f2f2;color:#666;border-radius:999px;padding:4px 11px}
+  .who-tab span.now{background:var(--accent);color:#fff;font-weight:700}
+  .person-head{margin:26px 0 12px;padding:10px 14px;background:var(--soft);border-radius:10px;
+    font-weight:700;font-size:15px;color:var(--accent-dark)}
+  .person-head:first-child{margin-top:0}
+  .pair{border:2px solid var(--accent);border-radius:var(--radius);padding:14px;margin-bottom:14px;background:#fff}
+  .pair h4{margin:0 0 8px;font-size:14px;color:var(--accent-dark)}
+  .pair p{margin:0;font-size:13.5px;line-height:1.8}
+  .add-person{display:block;width:100%;margin-top:14px;padding:13px;border:2px dashed var(--accent);
+    background:#fff;color:var(--accent-dark);border-radius:var(--radius);font:700 14px/1.4 inherit;cursor:pointer}
+  .nav{display:flex;gap:10px;margin-top:20px}
+  .btn{flex:1;padding:14px;border:0;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.primary:disabled{background:#ddd;color:#999;cursor:default}
+  .btn.ghost{flex:0 0 90px;background:#f2f2f2;color:#555}
+  /* 結果 */
+  .msg{background:var(--soft);border-left:4px solid var(--accent);padding:12px 14px;border-radius:0 10px 10px 0;font-size:14px;margin-bottom:18px}
+  .msg b{color:var(--accent-dark)}
+  .cnt{font-size:13px;color:var(--sub);margin:0 0 12px}
+  .card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;background:var(--card)}
+  .card.near{background:#fcfcfc;border-style:dashed}
+  .tag.fit{background:#e8f6ec;color:#1e7a3c;font-weight:700}
+  .diff{font-size:12.5px;color:#8a6d00;background:#fff8e1;border-radius:10px;padding:9px 12px;margin:0 0 12px}
+  .diff b{color:#7a5f00}
+  .cnt.sub{margin-top:26px;padding-top:16px;border-top:1px dashed var(--border);font-weight:700;color:#555}
+  .msg.none{background:#fff4f6;border-left-color:var(--accent)}
+  .card .tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .tag{font-size:11px;background:#f3f3f3;color:#555;border-radius:999px;padding:3px 10px}
+  .tag.lv{background:var(--accent);color:#fff}
+  .card h3{margin:0 0 6px;font-size:16px}
+  .meta{font-size:13px;color:var(--sub);margin:0 0 12px}
+  .meta b{color:var(--ink);font-weight:600}
+  .cta{display:block;text-align:center;background:var(--accent);color:#fff;text-decoration:none;padding:12px;border-radius:999px;font-weight:700;font-size:14px}
+  .cta.line{background:var(--line)}
+  .cta.out{background:#fff;color:var(--accent);border:2px solid var(--accent)}
+  .foot{margin-top:24px;padding-top:18px;border-top:1px solid var(--border)}
+  .note{font-size:12px;color:var(--sub);margin-top:14px}
+  .again{display:block;width:100%;margin-top:12px;background:none;border:0;color:var(--sub);font-size:13px;text-decoration:underline;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>あなたに合うクラスを探す</h1>
+  <p class="lead">いくつか選ぶだけ。体験は全クラス1回無料です。</p>
+  <div class="who-tab" id="who-tab"></div>
+  <div class="bar"><i id="bar"></i></div>
+
+  <!-- Q1 -->
+  <section class="step on" data-step="0">
+    <p class="q">どなたが踊りますか？</p>
+    <p class="hint">お子さまの場合は学年でお選びください</p>
+    <div class="opts" id="q-who"></div>
+  </section>
+
+  <!-- Q2 -->
+  <section class="step" data-step="1">
+    <p class="q">ダンスの経験は？</p>
+    <p class="hint">未経験の方が9割です。はじめてでも大丈夫です</p>
+    <div class="opts" id="q-exp"></div>
+  </section>
+
+  <!-- Q3 -->
+  <section class="step" data-step="2">
+    <p class="q">通いやすいスタジオは？<span class="multi-badge">複数選べます</span></p>
+    <p class="hint">近い順にいくつでも。決めていなければ一番上を選んでください</p>
+    <div class="opts" id="q-studio"></div>
+  </section>
+
+  <!-- Q4 -->
+  <section class="step" data-step="3">
+    <p class="q">通えそうな曜日は？<span class="multi-badge">複数選べます</span></p>
+    <p class="hint">通える曜日を全部選んでおくと、候補が見つかりやすくなります</p>
+    <div class="opts two" id="q-day"></div>
+  </section>
+
+  <!-- Q5 -->
+  <section class="step" data-step="4">
+    <p class="q">興味のあるジャンルは？<span class="multi-badge">複数選べます</span></p>
+    <p class="hint">迷ったら「おまかせ」で大丈夫です</p>
+    <div class="opts two" id="q-genre"></div>
+  </section>
+
+  <!-- 結果 -->
+  <section class="step" data-step="5">
+    <div id="result"></div>
+    <button class="again" onclick="restart()">もう一度はじめから</button>
+  </section>
+
+  <div class="nav" id="nav">
+    <button class="btn ghost" id="back" onclick="go(-1)" style="visibility:hidden">戻る</button>
+    <button class="btn primary" id="next" onclick="go(1)" disabled>次へ</button>
+  </div>
+</div>
+
+<!-- ===================================================================
+     クラスデータ（ここだけ差し替えれば診断ロジックは触らなくてよい）
+     出典: 02_Business/Munchkin/Manual/class-schedule.md
+           01_Inbox/Claude/2026-07-29-hacomono-class-url-map.md
+     level: 幼児 / 入門 / 初中級 / 上級 / 大人 / その他
+     ==================================================================== -->
+<script id="class-data" type="application/json">
+{
+  "updated": "2026-07-31",
+  "studios": {
+    "西田辺": {"route": "1/1"},
+    "長居":   {"route": "2/3"},
+    "あべの": {"route": "4/6"},
+    "玉造":   {"route": "5/7"}
+  },
+  "reserveBase": "https://dancestudiomunchkin.hacomono.jp/reserve/schedule/",
+  "lineUrl": "https://lin.ee/8mQehEG",
+  "classes": [
+    {"studio":"西田辺","day":"月","time":"16:25–17:15","name":"KIDS GIRLS HIPHOP 入門","teacher":"SHIZUKU","genre":"GIRLS HIPHOP","level":"入門","min":50,"id":40},
+    {"studio":"西田辺","day":"月","time":"17:20–18:30","name":"GIRL'S HIPHOP 初中級","teacher":"SHIZUKU","genre":"GIRLS HIPHOP","level":"初中級","min":70,"id":4},
+    {"studio":"西田辺","day":"月","time":"18:40–19:30","name":"FreeStyle HIPHOP 入門","teacher":"KANO","genre":"フリースタイル","level":"入門","min":50,"id":5},
+    {"studio":"西田辺","day":"月","time":"19:40–20:50","name":"FreeStyle HIPHOP 初中級","teacher":"KANO","genre":"フリースタイル","level":"初中級","min":70,"id":6},
+    {"studio":"西田辺","day":"火","time":"10:30–11:40","name":"大人から始めるHIPHOPダンス","teacher":"AYUNA","genre":"HIPHOP","level":"大人","min":70,"id":20,"ticket":true},
+    {"studio":"西田辺","day":"火","time":"17:30–18:20","name":"KIDS GIRLS HIPHOP 入門","teacher":"MOMONA","genre":"GIRLS HIPHOP","level":"入門","min":50,"id":7},
+    {"studio":"西田辺","day":"火","time":"18:25–19:35","name":"GIRLS HIPHOP 初中級","teacher":"MOMONA","genre":"GIRLS HIPHOP","level":"初中級","min":70,"id":8},
+    {"studio":"西田辺","day":"水","time":"16:00–16:50","name":"はじめてのブレイクダンス 幼児クラス","teacher":"RECOLTE","genre":"ブレイク","level":"幼児","min":50,"id":9},
+    {"studio":"西田辺","day":"水","time":"17:00–17:50","name":"KIDS ブレイク入門","teacher":"RECOLTE","genre":"ブレイク","level":"入門","min":50,"id":10},
+    {"studio":"西田辺","day":"水","time":"18:00–19:10","name":"ブレイク初中級","teacher":"RECOLTE","genre":"ブレイク","level":"初中級","min":70,"id":11},
+    {"studio":"西田辺","day":"水","time":"19:30–20:40","name":"HIPHOP初中級（大人・子ども混在）","teacher":"AYUNA","genre":"HIPHOP","level":"初中級","min":70,"id":12},
+    {"studio":"西田辺","day":"水","time":"20:45–21:55","name":"夜のリフレッシュダンス","teacher":"AYUNA","genre":"HIPHOP","level":"大人","min":70,"id":13,"ticket":true},
+    {"studio":"西田辺","day":"木","time":"18:25–19:35","name":"フリースタイル初中級","teacher":"MINE","genre":"フリースタイル","level":"初中級","min":70,"id":14},
+    {"studio":"西田辺","day":"金","time":"16:20–17:10","name":"K-POP & Girls 幼児クラス","teacher":"IBU","genre":"K-POP","level":"幼児","min":50,"id":17},
+    {"studio":"西田辺","day":"金","time":"17:15–18:25","name":"K-POP & Girls 入門クラス","teacher":"IBU","genre":"K-POP","level":"入門","min":70,"id":18},
+    {"studio":"西田辺","day":"金","time":"18:30–19:40","name":"Freestyle Jazz 初中級","teacher":"AMI","genre":"ジャズ","level":"初中級","min":70,"id":15},
+    {"studio":"西田辺","day":"金","time":"19:50–21:00","name":"Freestyle Jazz 上級","teacher":"AMI","genre":"ジャズ","level":"上級","min":70,"id":16},
+    {"studio":"西田辺","day":"土","time":"13:00–13:50","name":"Jazz 入門","teacher":"HINANO","genre":"ジャズ","level":"入門","min":50,"id":34},
+    {"studio":"西田辺","day":"土","time":"19:40–20:50","name":"K-POP & コレオクラス","teacher":"IBU","genre":"K-POP","level":"その他","min":70,"id":19,"for":["elementary","teen","adult"],"note":"対象は体験時にご相談ください"},
+
+    {"studio":"長居","day":"月","time":"19:05–20:15","name":"HIPHOP初中級","teacher":"SOUTA","genre":"HIPHOP","level":"初中級","min":70,"id":12},
+    {"studio":"長居","day":"水","time":"20:15–21:25","name":"HIPHOP初中級","teacher":"MAOO","genre":"HIPHOP","level":"初中級","min":70,"id":12},
+    {"studio":"長居","day":"水","time":"21:30–22:40","name":"HIPHOP 上級・強化クラス","teacher":"MAOO","genre":"HIPHOP","level":"上級","min":70,"id":23},
+    {"studio":"長居","day":"木","time":"16:05–16:55","name":"ブレイク入門クラス","teacher":"HAYATE","genre":"ブレイク","level":"入門","min":50,"id":24},
+    {"studio":"長居","day":"木","time":"16:55–18:05","name":"ブレイク初中級","teacher":"HAYATE","genre":"ブレイク","level":"初中級","min":70,"id":11},
+    {"studio":"長居","day":"木","time":"18:05–19:15","name":"ブレイク上級クラス","teacher":"HAYATE","genre":"ブレイク","level":"上級","min":70,"id":26},
+    {"studio":"長居","day":"金","time":"18:15–19:05","name":"HIPHOP入門クラス","teacher":"MAHO","genre":"HIPHOP","level":"入門","min":50,"id":27},
+    {"studio":"長居","day":"金","time":"19:05–20:15","name":"HIPHOP初中級","teacher":"MAHO","genre":"HIPHOP","level":"初中級","min":70,"id":12},
+    {"studio":"長居","day":"土","time":"13:15–14:05","name":"HIPHOP幼児クラス","teacher":"YURA","genre":"HIPHOP","level":"幼児","min":50,"id":29},
+    {"studio":"長居","day":"土","time":"14:10–15:00","name":"HIPHOP入門クラス","teacher":"YURA","genre":"HIPHOP","level":"入門","min":50,"id":27},
+    {"studio":"長居","day":"土","time":"15:05–15:55","name":"ソロ・バトル強化クラス","teacher":"WATABOO","genre":"HIPHOP","level":"その他","min":50,"id":31,"hidden":true,"note":"ご参加は先生とご相談のうえご案内しています"},
+
+    {"studio":"あべの","day":"水","time":"17:00–17:50","name":"幼児 ストリートダンス","teacher":"YURA","genre":"ストリート","level":"幼児","min":50,"id":36},
+    {"studio":"あべの","day":"水","time":"18:00–18:50","name":"KIDS HIPHOP 入門","teacher":"YURA","genre":"HIPHOP","level":"入門","min":50,"id":37},
+    {"studio":"あべの","day":"金","time":"17:00–17:50","name":"キッズダンス 入門","teacher":"PU","genre":"ストリート","level":"入門","min":50,"id":38},
+    {"studio":"あべの","day":"金","time":"17:50–19:00","name":"Freestyle Jazz 初中級","teacher":"PU","genre":"ジャズ","level":"初中級","min":70,"id":39},
+
+    {"studio":"玉造","day":"火","time":"17:50–19:00","name":"キッズ street / freestyle","teacher":"MAKI","genre":"フリースタイル","level":"その他","min":70,"id":1,"for":["elementary"],"note":"レベルは体験時にご相談ください"}
+  ]
+}
+</script>
+
+<script>
+const DATA = JSON.parse(document.getElementById('class-data').textContent);
+
+/* ===== 回答データの記録（無料・APIなし） ==========================
+   GoogleスプレッドシートのGASウェブアプリURLをここに入れると記録が始まる。
+   空のままなら何も送信しない（診断機能には一切影響しない）。
+   個人情報は取らない：選んだ選択肢・結果件数・押したボタンだけ。       */
+const TRACK_URL = "";
+
+function track(event, payload){
+  if(!TRACK_URL) return;
+  try{
+    const body = JSON.stringify(Object.assign({
+      event: event,
+      ts: new Date().toISOString(),
+      sid: sid()
+    }, payload || {}));
+    navigator.sendBeacon(TRACK_URL, new Blob([body], {type:'text/plain;charset=UTF-8'}));
+  }catch(e){ /* 記録に失敗しても診断は止めない */ }
+}
+function sid(){ // 同じ人の一連の操作をつなぐ用（個人は特定しない使い捨てID）
+  let s = sessionStorage.getItem('mkf-sid');
+  if(!s){ s = Math.random().toString(36).slice(2,10); sessionStorage.setItem('mkf-sid', s); }
+  return s;
+}
+
+/* ---- 選択肢の定義 ---- */
+const WHO = [
+  {v:'preschool', l:'未就学のお子さま', s:'3歳〜年長'},
+  {v:'elementary', l:'小学生', s:''},
+  {v:'teen', l:'中学生・高校生', s:''},
+  {v:'adult', l:'大人', s:'保護者の方・一般の方'}
+];
+const EXP = [
+  {v:'none', l:'はじめて', s:'ダンス経験なし'},
+  {v:'little', l:'少しだけある', s:'学校の授業・スクール半年くらい'},
+  {v:'exp', l:'経験がある', s:'他スクール経験・1年以上'}
+];
+const DAYS = ['月','火','水','木','金','土'];
+const GENRES = ['HIPHOP','GIRLS HIPHOP','ブレイク','K-POP','ジャズ','フリースタイル','ストリート'];
+
+/* ---- 状態 ----
+   people[] に診断した人を溜める（兄弟・姉妹を続けて診断できる）。
+   スタジオ・曜日は家族で共通のことが多いので、2人目以降は引き継いで聞き直さない。 */
+const RESULT = 5;
+let step = 0;
+let flow = [0,1,2,3,4];   // 1人目に聞く質問の順番（2人目以降は [0,1,4]）
+let fi   = 0;             // flow の何番目か
+let pi   = 0;             // 何人目を診断中か
+const people = [];        // [{who, exp, genres}]
+const ans = {who:null, exp:null, studios:[], days:[], genres:[]};
+
+/* ---- 選択肢を描く ---- */
+function radio(host, items, key){
+  const box = document.getElementById(host);
+  box.innerHTML = '';
+  items.forEach(it=>{
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = it.l + (it.s ? '<small>'+it.s+'</small>' : '');
+    b.onclick = ()=>{
+      if(key==='who' && !ans.who) track('start', {who: it.v});
+      ans[key] = it.v;
+      [...box.children].forEach(c=>c.classList.remove('sel'));
+      b.classList.add('sel');
+      sync();
+    };
+    box.appendChild(b);
+  });
+}
+function checks(host, items, key, anyLabel){
+  const box = document.getElementById(host);
+  box.innerHTML = '';
+  const all = [{v:'*', l:anyLabel}].concat(items.map(x=> typeof x==='string'?{v:x,l:x}:x));
+  all.forEach(it=>{
+    const b = document.createElement('button');
+    b.className = 'opt multi';
+    b.innerHTML = '<span class="box"></span>' + it.l;
+    if(it.v === '*' && !ans[key].length) b.classList.add('sel');
+    b.onclick = ()=>{
+      if(it.v === '*'){
+        ans[key] = [];
+        [...box.children].forEach(c=>c.classList.remove('sel'));
+        b.classList.add('sel');
+      }else{
+        box.children[0].classList.remove('sel');
+        const i = ans[key].indexOf(it.v);
+        if(i>=0){ ans[key].splice(i,1); b.classList.remove('sel'); }
+        else { ans[key].push(it.v); b.classList.add('sel'); }
+      }
+      sync();
+    };
+    box.appendChild(b);
+  });
+}
+radio('q-who', WHO, 'who');
+radio('q-exp', EXP, 'exp');
+checks('q-studio', Object.keys(DATA.studios).map(s=>({v:s,l:s+'スタジオ'})), 'studios', 'どこでもよい / 決めていない');
+checks('q-day', DAYS.map(d=>({v:d,l:d+'曜日'})), 'days', 'いつでも');
+checks('q-genre', GENRES, 'genres', 'おまかせ・迷い中');
+
+/* ---- ステップ制御 ---- */
+function canNext(){
+  if(step===0) return !!ans.who;
+  if(step===1) return !!ans.exp;
+  return true; // スタジオ・曜日・ジャンルは未選択＝こだわりなしでOK
+}
+function showStep(){
+  document.querySelectorAll('.step').forEach(s=>s.classList.toggle('on', +s.dataset.step===step));
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function sync(){
+  const atResult = step===RESULT;
+  document.getElementById('next').disabled = !canNext();
+  document.getElementById('bar').style.width = (atResult ? 1 : fi/flow.length)*100+'%';
+  document.getElementById('back').style.visibility = fi===0 ? 'hidden':'visible';
+  document.getElementById('next').textContent = fi===flow.length-1 ? 'クラスを見る' : '次へ';
+  document.getElementById('nav').style.display = atResult ? 'none' : 'flex';
+  drawTabs();
+}
+function label(p){
+  return ((WHO.find(w=>w.v===p.who)||{}).l || '') ;
+}
+function drawTabs(){
+  const t = document.getElementById('who-tab');
+  if(people.length===0 && pi===0){ t.innerHTML=''; return; }   // 1人目だけのときは出さない
+  const chips = [];
+  for(let i=0; i<Math.max(people.length, pi+1); i++){
+    const now = (i===pi && step!==RESULT);
+    const txt = now ? (i+1)+'人目を診断中' : (people[i] ? (i+1)+'人目：'+label(people[i]) : '');
+    if(txt) chips.push(`<span class="${now?'now':''}">${txt}</span>`);
+  }
+  t.innerHTML = chips.join('');
+}
+function go(d){
+  if(d>0 && !canNext()) return;
+  fi += d;
+  if(fi >= flow.length){ commit(); step = RESULT; render(); }
+  else { step = flow[fi]; }
+  showStep(); sync();
+}
+function commit(){ people[pi] = {who:ans.who, exp:ans.exp, genres:[...ans.genres]}; }
+
+/* 兄弟・姉妹をもう1人ぶん診断する（スタジオ・曜日は引き継ぐので3問だけ） */
+function addPerson(){
+  pi = people.length;
+  ans.who = null; ans.exp = null; ans.genres = [];
+  flow = [0,1,4]; fi = 0; step = flow[0];
+  radio('q-who', WHO, 'who');
+  radio('q-exp', EXP, 'exp');
+  checks('q-genre', GENRES, 'genres', 'おまかせ・迷い中');
+  showStep(); sync();
+  track('add_person', {n: pi+1});
+}
+function restart(){ location.reload(); }
+
+/* ---- 診断ロジック（区分は class-selection-guide に準拠） ----
+   クラスを増やすときは data 側に1行足すだけ。ここは触らない。
+   ・level だけ書けば対象は下の既定で決まる
+   ・例外だけ "for":[...] を書く／体験の入口に出さないクラスは "hidden":true      */
+const DEFAULT_FOR = {
+  '幼児': ['preschool'],
+  '入門': ['elementary','teen'],
+  '大人': ['adult'],
+  '初中級': [],   // 講師判断のため体験の入口には出さない
+  '上級':   [],
+  'その他': []    // 対象は必ず "for" で明示する
+};
+function audienceOk(c, p){
+  if(c.hidden) return false;
+  return (c.for || DEFAULT_FOR[c.level] || []).includes(p.who);
+}
+/* 年齢・経験は「合わないクラスを出さない」絶対条件。
+   スタジオ・曜日・ジャンルは希望なので、外れても候補には残し、違う点を明記する。 */
+function candidates(p){
+  return DATA.classes.filter(c=>{
+    if(!audienceOk(c, p)) return false;
+    // 「その他（応相談）」枠は、経験のある方にだけ候補として出す
+    if(c.level==='その他' && p.who!=='adult' && p.exp!=='exp') return false;
+    return true;
+  });
+}
+/* そのクラスが「ご希望と違う点」を返す（空なら希望どおり）
+   曜日・スタジオは家族共通(ans)、ジャンルは人ごと(p) */
+function missOf(c, p){
+  const m = [];
+  const g = (p && p.genres) || [];
+  if(ans.days.length    && !ans.days.includes(c.day))       m.push({k:'day',    txt:`曜日は<b>${c.day}曜</b>（ご希望：${ans.days.join('・')}曜）`});
+  if(ans.studios.length && !ans.studios.includes(c.studio)) m.push({k:'studio', txt:`<b>${c.studio}スタジオ</b>です（ご希望：${ans.studios.join('・')}）`});
+  if(g.length           && !g.includes(c.genre))            m.push({k:'genre',  txt:`ジャンルは<b>${c.genre}</b>（ご希望：${g.join('・')}）`});
+  return m;
+}
+/* 1人ぶんの結果（希望どおり／条件が少し違う に分け、通いやすさ優先で並べる） */
+function resultFor(p){
+  const pen = c => missOf(c,p).reduce((s,m)=> s + (m.k==='genre' ? 1 : 3), 0);  // 曜日・スタジオは重い
+  const all = candidates(p).sort((a,b)=> pen(a)-pen(b));
+  return {
+    exact: all.filter(c=> missOf(c,p).length===0),
+    near:  all.filter(c=> missOf(c,p).length>0)
+  };
+}
+function price(c){
+  if(c.level==='幼児') return '7,500円';
+  if(c.ticket) return '9,300円 ／ チケット制も選べます';
+  return c.min===70 ? '9,300円' : '8,000円';
+}
+function url(c){
+  return DATA.reserveBase + DATA.studios[c.studio].route + '?trial=true&program_id=' + c.id;
+}
+function card(c, p){
+  const miss = missOf(c, p);
+  const alert = miss.length
+    ? `<p class="diff"><b>ご希望とは違う点</b><br>${miss.map(m=>'・'+m.txt).join('<br>')}</p>`
+    : '';
+  return `<div class="card${miss.length?' near':''}">
+    <div class="tags">
+      <span class="tag lv">${c.level==='その他'?'応相談':c.level}</span>
+      <span class="tag">${c.studio}スタジオ</span>
+      <span class="tag">${c.genre}</span>
+      ${miss.length ? '' : '<span class="tag fit">ご希望どおり</span>'}
+    </div>
+    <h3>${c.name}</h3>
+    <p class="meta">
+      <b>${c.day}曜 ${c.time}</b>（${c.min}分）／ 講師 ${c.teacher}<br>
+      月謝 ${price(c)}${c.note ? '<br>※'+c.note : ''}
+    </p>
+    ${alert}
+    <a class="cta" href="${url(c)}" target="_blank" rel="noopener"
+       data-t="reserve" data-cls="${c.name}" data-studio="${c.studio}" data-id="${c.id}"
+       data-person="${people.indexOf(p)+1}" data-who="${p.who}" data-exp="${p.exp}">このクラスの無料体験を予約する</a>
+  </div>`;
+}
+
+/* 予約ボタン・LINEボタンのクリックを記録（クリック自体は妨げない） */
+document.addEventListener('click', function(e){
+  const a = e.target.closest('[data-t]');
+  if(!a) return;
+  if(a.dataset.t === 'reserve'){
+    track('reserve', {cls:a.dataset.cls, studio:a.dataset.studio, id:+a.dataset.id,
+                      person:+a.dataset.person, of:people.length, who:a.dataset.who, exp:a.dataset.exp});
+  }else if(a.dataset.t === 'line'){
+    track('line', {from:a.dataset.from, of:people.length, who:(people[0]||{}).who, exp:(people[0]||{}).exp});
+  }
+});
+
+function msgFor(p){
+  if(p.who==='teen') return `<div class="msg"><b>中学生・高校生ではじめる方へ</b><br>「今からでも大丈夫？」——大丈夫です😊 年齢やご経験に合わせて入りやすいクラスを<b>個別にご案内</b>しています。下の候補も体験いただけますが、まずご相談いただくのがいちばん確実です。</div>
+    <a class="cta line" href="${DATA.lineUrl}" target="_blank" rel="noopener" data-t="line" data-from="teen-top" style="margin-bottom:18px">公式LINEでクラスを相談する</a>`;
+  if(p.who==='elementary' && p.exp==='exp') return `<div class="msg">経験のあるお子さまは<b>初中級クラス</b>に進める場合があります。初中級・上級は担当の先生がご様子を見てご案内していますので、まずは下の入門クラスを体験いただくか、公式LINEでご相談ください。</div>`;
+  if(p.who==='preschool') return `<div class="msg">未就学のお子さまは<b>幼児クラス</b>から。音楽に合わせて楽しく体を動かすところからスタートします。小学校ご入学のタイミングで入門クラスへご案内します。</div>`;
+  if(p.who==='adult') return `<div class="msg">大人の方は<b>月謝制のほか、チケット制（1回から）</b>でもご参加いただけます。はじめての方がほとんどです。</div>`;
+  return '';
+}
+function foot(){
+  return `<div class="foot">
+    <a class="cta line" href="${DATA.lineUrl}" target="_blank" rel="noopener" data-t="line" data-from="result-foot">クラス選びを公式LINEで相談する</a>
+    <p class="note">
+      ・体験は全クラス<b>1回無料</b>です（複数クラスの体験もOK）／保護者の方のご見学も大歓迎です<br>
+      ・初中級・上級クラスは、担当の先生がご様子を見てご案内しています<br>
+      ・レッスンは原則 第1〜第4週の開講です（第5週は休講）<br>
+      ・別途 入会金 6,600円／クラス情報 ${DATA.updated} 現在
+    </p>
+  </div>`;
+}
+
+/* 兄弟・姉妹で「同じスタジオ・同じ曜日」に揃う組み合わせ＝送り迎えが1回で済む */
+function pairSection(rs){
+  if(people.length < 2) return '';
+  const A = rs[0].exact.concat(rs[0].near), B = rs[1].exact.concat(rs[1].near);
+  const pairs = [];
+  A.forEach(a=> B.forEach(b=>{
+    if(a.studio===b.studio && a.day===b.day && !(a.id===b.id && a.time===b.time)) pairs.push([a,b]);
+  }));
+  if(!pairs.length) return '';
+  return `<div class="person-head">👨‍👩‍👧 送り迎えが1回で済む組み合わせ</div>`
+    + pairs.slice(0,3).map(([a,b])=>`<div class="pair">
+        <h4>${a.studio}スタジオ・${a.day}曜</h4>
+        <p>1人目：<b>${a.name}</b>　${a.time}<br>2人目：<b>${b.name}</b>　${b.time}</p>
+      </div>`).join('')
+    + (pairs.length>3 ? `<p class="note">ほかにも${pairs.length-3}通りの組み合わせがあります（下の一覧からお選びいただけます）</p>` : '')
+    + (people.length>2 ? `<p class="note">※組み合わせは最初のお2人ぶんを表示しています</p>` : '');
+}
+
+function render(){
+  const box = document.getElementById('result');
+  const rs = people.map(resultFor);
+  const CAP = people.length>1 ? 5 : 99;      // 複数人のときは1人あたりの「近い候補」を絞る
+  let html = pairSection(rs);
+
+  people.forEach((p, i)=>{
+    const r = rs[i];
+    if(people.length > 1){
+      html += `<div class="person-head">${i+1}人目：${label(p)}／${(EXP.find(e=>e.v===p.exp)||{}).l}</div>`;
+    }
+    html += msgFor(p);
+
+    if(r.exact.length){
+      html += `<p class="cnt"><b>${r.exact.length}件</b>のクラスがご希望に合いました</p>` + r.exact.map(c=>card(c,p)).join('');
+    }else{
+      const want = [ans.days.length?ans.days.join('・')+'曜':'', ans.studios.join('・'), (p.genres||[]).join('・')].filter(Boolean).join('／');
+      html += `<div class="msg none"><b>ご希望どおりのクラスは、いまのところありません。</b><br>
+        ${want} でのご案内ができず申し訳ありません。近いクラスを下にご案内します。ご相談いただければ、ご事情に合わせてお探しします。</div>`;
+    }
+
+    if(r.near.length){
+      const shown = r.near.slice(0, CAP);
+      html += `<p class="cnt sub">${r.exact.length ? 'ほかに、条件は少し違いますがこちらもご案内できます' : 'こちらのクラスならご案内できます'}（${r.near.length}件`
+            + (r.near.length>shown.length ? `中 ${shown.length}件を表示` : '') + `）</p>`
+            + shown.map(c=>card(c,p)).join('');
+    }
+
+    // ★「ご希望どおりが0件だった回」がそのままクラス新設の根拠になる
+    track('result', {
+      person: i+1, of: people.length,
+      who: p.who, exp: p.exp,
+      studios: ans.studios.join('・') || 'こだわらない',
+      days:    ans.days.join('・')    || 'いつでも',
+      genres:  (p.genres||[]).join('・') || 'おまかせ',
+      hits: r.exact.length,
+      relaxed: r.exact.length ? '' : '希望どおり0件'
+    });
+  });
+
+  html += `<button class="add-person" onclick="addPerson()">👧👦 兄弟・姉妹も一緒に探す</button>`;
+  box.innerHTML = html + foot();
+  drawTabs();
+}
+sync();
+</script>
+</body>
+</html>

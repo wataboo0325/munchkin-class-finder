@@ -221,7 +221,7 @@ const esc = s => String(s==null ? '' : s).replace(/[&<>"']/g,
    GoogleスプレッドシートのGASウェブアプリURLをここに入れると記録が始まる。
    空のままなら何も送信しない（診断機能には一切影響しない）。
    個人情報は取らない：選んだ選択肢・結果件数・押したボタンだけ。       */
-const TRACK_URL = "";
+const TRACK_URL = "https://script.google.com/macros/s/AKfycbwDaKIb6wxkNaNUgvoYxFLqkkleUPTOKh-WkysEoZksC9HPbXSPWm2FG-PSCJSTjkiHfw/exec";
 
 function track(event, payload){
   if(!TRACK_URL) return;
@@ -556,17 +556,33 @@ function render(){
     }
     html += msgFor(p);
 
+    // 年齢とジャンルは合っていて、曜日かスタジオだけが違うもの＝実質「ぴったりのクラス」
+    const genreOk = r.near.filter(c=> !missOf(c,p).some(m=>m.k==='genre'));
+    const others  = r.near.filter(c=> !genreOk.includes(c));
+
     if(r.exact.length){
       html += list(r.exact, p, CAP, `<p class="cnt"><b>${r.exact.length}件</b>のクラスがご希望に合いました</p>`);
+      if(r.near.length){
+        html += list(r.near, p, CAP, `<p class="cnt sub">ほかに、条件は少し違いますがこちらもご案内できます（${r.near.length}件）</p>`);
+      }
+    }else if(genreOk.length){
+      // 「ありません」で終わらせず、何を変えればぴったりになるかを先に伝える
+      const c0  = genreOk[0];
+      const fix = missOf(c0,p).map(m=> m.k==='day' ? `${esc(c0.day)}曜` : `${esc(c0.studio)}スタジオ`).join('・');
+      const asked = [ans.days.length?esc(ans.days.join('・'))+'曜':'', esc(ans.studios.join('・'))].filter(Boolean).join('／');
+      html += `<div class="msg none"><b>${fix}なら、ぴったりのクラスがあります。</b><br>
+        ${asked} では見つかりませんでしたが、下のクラスは<b>お子さまの年齢とご希望のジャンルに合っています</b>。ご都合が合えば、ぜひ体験してみてください。</div>`;
+      html += list(genreOk, p, CAP, `<p class="cnt">おすすめのクラス（${genreOk.length}件）</p>`);
+      if(others.length){
+        html += list(others, p, CAP, `<p class="cnt sub">ほかの候補（${others.length}件）</p>`);
+      }
     }else{
-      const want = [ans.days.length?ans.days.join('・')+'曜':'', ans.studios.join('・'), (p.genres||[]).join('・')].filter(Boolean).join('／');
+      const want = [ans.days.length?esc(ans.days.join('・'))+'曜':'', esc(ans.studios.join('・')), esc((p.genres||[]).join('・'))].filter(Boolean).join('／');
       html += `<div class="msg none"><b>ご希望どおりのクラスは、いまのところありません。</b><br>
         ${want} でのご案内ができず申し訳ありません。近いクラスを下にご案内します。ご相談いただければ、ご事情に合わせてお探しします。</div>`;
-    }
-
-    if(r.near.length){
-      html += list(r.near, p, CAP,
-        `<p class="cnt sub">${r.exact.length ? 'ほかに、条件は少し違いますがこちらもご案内できます' : 'こちらのクラスならご案内できます'}（${r.near.length}件）</p>`);
+      if(r.near.length){
+        html += list(r.near, p, CAP, `<p class="cnt sub">こちらのクラスならご案内できます（${r.near.length}件）</p>`);
+      }
     }
 
     // ★「ご希望どおりが0件だった回」がそのままクラス新設の根拠になる

@@ -75,11 +75,16 @@
     document.body.appendChild(btn);
 
     // 一度閉じた吹き出しはその訪問中は出さない
-    if (sessionStorage.getItem('mkfinder-bubble-closed')) bubble.style.display = 'none';
+    // （Storageが使えない環境でもボタン自体は必ず出るよう、読み書きは失敗を握りつぶす）
+    var store = {
+      get: function (k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+      set: function (k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+    };
+    if (store.get('mkfinder-bubble-closed')) bubble.style.display = 'none';
     bubble.querySelector('.x').onclick = function (e) {
       e.stopPropagation();
       bubble.style.display = 'none';
-      sessionStorage.setItem('mkfinder-bubble-closed', '1');
+      store.set('mkfinder-bubble-closed', '1');
     };
 
     function open() {

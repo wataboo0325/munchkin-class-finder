@@ -87,6 +87,11 @@
   .foot{margin-top:24px;padding-top:18px;border-top:1px solid var(--border)}
   .note{font-size:12px;color:var(--sub);margin-top:14px}
   .again{display:block;width:100%;margin-top:12px;background:none;border:0;color:var(--sub);font-size:13px;text-decoration:underline;cursor:pointer;font-family:inherit}
+  .more{margin-bottom:12px}
+  .more > summary{cursor:pointer;list-style:none;text-align:center;padding:11px;border:1px solid var(--border);
+    border-radius:999px;font-size:13.5px;color:var(--accent-dark);font-weight:700;background:#fff}
+  .more > summary::-webkit-details-marker{display:none}
+  .more[open] > summary{margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -164,8 +169,8 @@
   "classes": [
     {"studio":"西田辺","day":"月","time":"16:25–17:15","name":"KIDS GIRLS HIPHOP 入門","teacher":"SHIZUKU","genre":"GIRLS HIPHOP","level":"入門","min":50,"id":40},
     {"studio":"西田辺","day":"月","time":"17:20–18:30","name":"GIRL'S HIPHOP 初中級","teacher":"SHIZUKU","genre":"GIRLS HIPHOP","level":"初中級","min":70,"id":4},
-    {"studio":"西田辺","day":"月","time":"18:40–19:30","name":"FreeStyle HIPHOP 入門","teacher":"KANO","genre":"フリースタイル","level":"入門","min":50,"id":5},
-    {"studio":"西田辺","day":"月","time":"19:40–20:50","name":"FreeStyle HIPHOP 初中級","teacher":"KANO","genre":"フリースタイル","level":"初中級","min":70,"id":6},
+    {"studio":"西田辺","day":"月","time":"18:40–19:30","name":"FreeStyle HIPHOP 入門","teacher":"KANO","genre":"フリースタイル","alias":["HIPHOP"],"level":"入門","min":50,"id":5},
+    {"studio":"西田辺","day":"月","time":"19:40–20:50","name":"FreeStyle HIPHOP 初中級","teacher":"KANO","genre":"フリースタイル","alias":["HIPHOP"],"level":"初中級","min":70,"id":6},
     {"studio":"西田辺","day":"火","time":"10:30–11:40","name":"大人から始めるHIPHOPダンス","teacher":"AYUNA","genre":"HIPHOP","level":"大人","min":70,"id":20,"ticket":true},
     {"studio":"西田辺","day":"火","time":"17:30–18:20","name":"KIDS GIRLS HIPHOP 入門","teacher":"MOMONA","genre":"GIRLS HIPHOP","level":"入門","min":50,"id":7},
     {"studio":"西田辺","day":"火","time":"18:25–19:35","name":"GIRLS HIPHOP 初中級","teacher":"MOMONA","genre":"GIRLS HIPHOP","level":"初中級","min":70,"id":8},
@@ -194,18 +199,23 @@
     {"studio":"長居","day":"土","time":"14:10–15:00","name":"HIPHOP入門クラス","teacher":"YURA","genre":"HIPHOP","level":"入門","min":50,"id":27},
     {"studio":"長居","day":"土","time":"15:05–15:55","name":"ソロ・バトル強化クラス","teacher":"WATABOO","genre":"HIPHOP","level":"その他","min":50,"id":31,"hidden":true,"note":"ご参加は先生とご相談のうえご案内しています"},
 
-    {"studio":"あべの","day":"水","time":"17:00–17:50","name":"幼児 ストリートダンス","teacher":"YURA","genre":"ストリート","level":"幼児","min":50,"id":36},
+    {"studio":"あべの","day":"水","time":"17:00–17:50","name":"幼児 ストリートダンス","teacher":"YURA","genre":"HIPHOP","alias":["ストリート"],"level":"幼児","min":50,"id":36},
     {"studio":"あべの","day":"水","time":"18:00–18:50","name":"KIDS HIPHOP 入門","teacher":"YURA","genre":"HIPHOP","level":"入門","min":50,"id":37},
-    {"studio":"あべの","day":"金","time":"17:00–17:50","name":"キッズダンス 入門","teacher":"PU","genre":"ストリート","level":"入門","min":50,"id":38},
+    {"studio":"あべの","day":"金","time":"17:00–17:50","name":"キッズダンス 入門","teacher":"PU","genre":"ストリート","alias":["HIPHOP"],"level":"入門","min":50,"id":38},
     {"studio":"あべの","day":"金","time":"17:50–19:00","name":"Freestyle Jazz 初中級","teacher":"PU","genre":"ジャズ","level":"初中級","min":70,"id":39},
 
-    {"studio":"玉造","day":"火","time":"17:50–19:00","name":"キッズ street / freestyle","teacher":"MAKI","genre":"フリースタイル","level":"その他","min":70,"id":1,"for":["elementary"],"note":"レベルは体験時にご相談ください"}
+    {"studio":"玉造","day":"火","time":"17:50–19:00","name":"キッズ street / freestyle","teacher":"MAKI","genre":"フリースタイル","alias":["ストリート"],"level":"その他","min":70,"id":1,"for":["elementary"],"note":"レベルは体験時にご相談ください"}
   ]
 }
 </script>
 
 <script>
 const DATA = JSON.parse(document.getElementById('class-data').textContent);
+let CLASSES = DATA.classes;   // 起動時の検査を通ったクラスだけがここに入る（末尾で validateData）
+
+/* HTMLエスケープ。クラス名に " < & ' が入っても表示・属性が壊れないようにする */
+const esc = s => String(s==null ? '' : s).replace(/[&<>"']/g,
+  m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
 /* ===== 回答データの記録（無料・APIなし） ==========================
    GoogleスプレッドシートのGASウェブアプリURLをここに入れると記録が始まる。
@@ -221,13 +231,16 @@ function track(event, payload){
       ts: new Date().toISOString(),
       sid: sid()
     }, payload || {}));
-    navigator.sendBeacon(TRACK_URL, new Blob([body], {type:'text/plain;charset=UTF-8'}));
+    const ok = navigator.sendBeacon(TRACK_URL, new Blob([body], {type:'text/plain;charset=UTF-8'}));
+    if(!ok) console.warn('[クラス診断] 記録の送信に失敗しました（診断は続行）');
   }catch(e){ /* 記録に失敗しても診断は止めない */ }
 }
 function sid(){ // 同じ人の一連の操作をつなぐ用（個人は特定しない使い捨てID）
-  let s = sessionStorage.getItem('mkf-sid');
-  if(!s){ s = Math.random().toString(36).slice(2,10); sessionStorage.setItem('mkf-sid', s); }
-  return s;
+  try{
+    let s = sessionStorage.getItem('mkf-sid');
+    if(!s){ s = Math.random().toString(36).slice(2,10); sessionStorage.setItem('mkf-sid', s); }
+    return s;
+  }catch(e){ return '-'; }   // Storageが使えない環境でも止めない
 }
 
 /* ---- 選択肢の定義 ---- */
@@ -378,8 +391,37 @@ function audienceOk(c, p){
 }
 /* 年齢・経験は「合わないクラスを出さない」絶対条件。
    スタジオ・曜日・ジャンルは希望なので、外れても候補には残し、違う点を明記する。 */
+/* 起動時のデータ検査。
+   クラスを足したときの書き間違いを「静かに0件」にせず、その場で気づける形にする。
+   不備のあるクラスだけを除外し、保護者には壊れた画面を見せない。
+   URLに ?debug=1 を付けると不備の一覧が画面に出る（確認用）。 */
+function validateData(){
+  const errs = [], ok = [];
+  DATA.classes.forEach((c, i)=>{
+    const at = `${i+1}件目「${c.name || '名前なし'}」`;
+    if(!c.studio || !DATA.studios[c.studio]) return errs.push(`${at}：スタジオ「${c.studio}」が studios に未登録（予約URLを作れません）`);
+    if(!DATA.studios[c.studio].route)        return errs.push(`${at}：${c.studio} の route が空`);
+    if(!(c.level in DEFAULT_FOR))            return errs.push(`${at}：level「${c.level}」は未定義（誰にも表示されません）`);
+    if(c.level==='その他' && !c.for && !c.hidden) return errs.push(`${at}：level「その他」には for か hidden:true が必要`);
+    if(c.id==null || !c.day || !c.time || !c.min) return errs.push(`${at}：id / day / time / min のどれかが未記入`);
+    if(c.for && !c.for.every(v=>['preschool','elementary','teen','adult'].includes(v)))
+                                             return errs.push(`${at}：for に未知の対象が入っています（${c.for}）`);
+    ok.push(c);
+  });
+  if(errs.length){
+    console.error('[クラス診断] データ不備のため除外したクラス:\n・' + errs.join('\n・'));
+    if(location.search.includes('debug=1')){
+      const d = document.createElement('div');
+      d.style.cssText = 'background:#fff3f3;border:2px solid #d33;border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#a00';
+      d.innerHTML = '<b>データ不備（この表示は ?debug=1 のときだけ）</b><br>・' + errs.map(esc).join('<br>・');
+      document.querySelector('.wrap').prepend(d);
+    }
+  }
+  return ok;
+}
+
 function candidates(p){
-  return DATA.classes.filter(c=>{
+  return CLASSES.filter(c=>{
     if(!audienceOk(c, p)) return false;
     // 「その他（応相談）」枠は、経験のある方にだけ候補として出す
     if(c.level==='その他' && p.who!=='adult' && p.exp!=='exp') return false;
@@ -391,9 +433,11 @@ function candidates(p){
 function missOf(c, p){
   const m = [];
   const g = (p && p.genres) || [];
-  if(ans.days.length    && !ans.days.includes(c.day))       m.push({k:'day',    txt:`曜日は<b>${c.day}曜</b>（ご希望：${ans.days.join('・')}曜）`});
-  if(ans.studios.length && !ans.studios.includes(c.studio)) m.push({k:'studio', txt:`<b>${c.studio}スタジオ</b>です（ご希望：${ans.studios.join('・')}）`});
-  if(g.length           && !g.includes(c.genre))            m.push({k:'genre',  txt:`ジャンルは<b>${c.genre}</b>（ご希望：${g.join('・')}）`});
+  if(ans.days.length    && !ans.days.includes(c.day))       m.push({k:'day',    txt:`曜日は<b>${esc(c.day)}曜</b>（ご希望：${esc(ans.days.join('・'))}曜）`});
+  if(ans.studios.length && !ans.studios.includes(c.studio)) m.push({k:'studio', txt:`<b>${esc(c.studio)}スタジオ</b>です（ご希望：${esc(ans.studios.join('・'))}）`});
+  // alias があるクラスは別名でもヒットさせる（例：キッズダンス入門は HIPHOP 希望でも出す）
+  const gset = [c.genre].concat(c.alias || []);
+  if(g.length && !g.some(x=>gset.includes(x)))              m.push({k:'genre',  txt:`ジャンルは<b>${esc(c.genre)}</b>（ご希望：${esc(g.join('・'))}）`});
   return m;
 }
 /* 1人ぶんの結果（希望どおり／条件が少し違う に分け、通いやすさ優先で並べる） */
@@ -420,20 +464,20 @@ function card(c, p){
     : '';
   return `<div class="card${miss.length?' near':''}">
     <div class="tags">
-      <span class="tag lv">${c.level==='その他'?'応相談':c.level}</span>
-      <span class="tag">${c.studio}スタジオ</span>
-      <span class="tag">${c.genre}</span>
+      <span class="tag lv">${esc(c.level==='その他'?'応相談':c.level)}</span>
+      <span class="tag">${esc(c.studio)}スタジオ</span>
+      <span class="tag">${esc(c.genre)}</span>
       ${miss.length ? '' : '<span class="tag fit">ご希望どおり</span>'}
     </div>
-    <h3>${c.name}</h3>
+    <h3>${esc(c.name)}</h3>
     <p class="meta">
-      <b>${c.day}曜 ${c.time}</b>（${c.min}分）／ 講師 ${c.teacher}<br>
-      月謝 ${price(c)}${c.note ? '<br>※'+c.note : ''}
+      <b>${esc(c.day)}曜 ${esc(c.time)}</b>（${esc(c.min)}分）／ 講師 ${esc(c.teacher)}<br>
+      月謝 ${price(c)}${c.note ? '<br>※'+esc(c.note) : ''}
     </p>
     ${alert}
-    <a class="cta" href="${url(c)}" target="_blank" rel="noopener"
-       data-t="reserve" data-cls="${c.name}" data-studio="${c.studio}" data-id="${c.id}"
-       data-person="${people.indexOf(p)+1}" data-who="${p.who}" data-exp="${p.exp}">このクラスの無料体験を予約する</a>
+    <a class="cta" href="${esc(url(c))}" target="_blank" rel="noopener"
+       data-t="reserve" data-idx="${CLASSES.indexOf(c)}"
+       data-person="${people.indexOf(p)+1}" data-who="${esc(p.who)}" data-exp="${esc(p.exp)}">このクラスの無料体験を予約する</a>
   </div>`;
 }
 
@@ -442,7 +486,8 @@ document.addEventListener('click', function(e){
   const a = e.target.closest('[data-t]');
   if(!a) return;
   if(a.dataset.t === 'reserve'){
-    track('reserve', {cls:a.dataset.cls, studio:a.dataset.studio, id:+a.dataset.id,
+    const c = CLASSES[+a.dataset.idx] || {};   // 属性に名前を持たせず、元データから引く
+    track('reserve', {cls:c.name, studio:c.studio, id:c.id, day:c.day, time:c.time,
                       person:+a.dataset.person, of:people.length, who:a.dataset.who, exp:a.dataset.exp});
   }else if(a.dataset.t === 'line'){
     track('line', {from:a.dataset.from, of:people.length, who:(people[0]||{}).who, exp:(people[0]||{}).exp});
@@ -487,10 +532,21 @@ function pairSection(rs){
     + (people.length>2 ? `<p class="note">※組み合わせは最初のお2人ぶんを表示しています</p>` : '');
 }
 
+/* 一度に浴びせず、まず cap 件だけ出して残りは「ほかの候補も見る」で開く */
+function list(items, p, cap, head){
+  const shown = items.slice(0, cap), rest = items.slice(cap);
+  let h = head + shown.map(c=>card(c,p)).join('');
+  if(rest.length){
+    h += `<details class="more"><summary>ほかの候補も見る（残り${rest.length}件）</summary>`
+       + rest.map(c=>card(c,p)).join('') + `</details>`;
+  }
+  return h;
+}
+
 function render(){
   const box = document.getElementById('result');
   const rs = people.map(resultFor);
-  const CAP = people.length>1 ? 5 : 99;      // 複数人のときは1人あたりの「近い候補」を絞る
+  const CAP = people.length>1 ? 4 : 6;       // まず出す件数。残りは「ほかの候補も見る」で開く
   let html = pairSection(rs);
 
   people.forEach((p, i)=>{
@@ -501,7 +557,7 @@ function render(){
     html += msgFor(p);
 
     if(r.exact.length){
-      html += `<p class="cnt"><b>${r.exact.length}件</b>のクラスがご希望に合いました</p>` + r.exact.map(c=>card(c,p)).join('');
+      html += list(r.exact, p, CAP, `<p class="cnt"><b>${r.exact.length}件</b>のクラスがご希望に合いました</p>`);
     }else{
       const want = [ans.days.length?ans.days.join('・')+'曜':'', ans.studios.join('・'), (p.genres||[]).join('・')].filter(Boolean).join('／');
       html += `<div class="msg none"><b>ご希望どおりのクラスは、いまのところありません。</b><br>
@@ -509,10 +565,8 @@ function render(){
     }
 
     if(r.near.length){
-      const shown = r.near.slice(0, CAP);
-      html += `<p class="cnt sub">${r.exact.length ? 'ほかに、条件は少し違いますがこちらもご案内できます' : 'こちらのクラスならご案内できます'}（${r.near.length}件`
-            + (r.near.length>shown.length ? `中 ${shown.length}件を表示` : '') + `）</p>`
-            + shown.map(c=>card(c,p)).join('');
+      html += list(r.near, p, CAP,
+        `<p class="cnt sub">${r.exact.length ? 'ほかに、条件は少し違いますがこちらもご案内できます' : 'こちらのクラスならご案内できます'}（${r.near.length}件）</p>`);
     }
 
     // ★「ご希望どおりが0件だった回」がそのままクラス新設の根拠になる
@@ -531,6 +585,7 @@ function render(){
   box.innerHTML = html + foot();
   drawTabs();
 }
+CLASSES = validateData();   // 起動時にデータを検査（不備は console と ?debug=1 で知らせる）
 sync();
 </script>
 </body>

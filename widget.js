@@ -102,6 +102,8 @@
       panel.classList.contains('open') ? close() : open();
     };
     bubble.onclick = open;
+    // 紙のリーフレットのQR用：URLに ?shindan（または #shindan）が付いていたら最初から開く
+    if (/[?&#]shindan\b/.test(location.search + location.hash)) open();
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') close();
     });

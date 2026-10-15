@@ -184,16 +184,16 @@
     {"studio":"西田辺","day":"金","time":"16:20–17:10","name":"K-POP & Girls 幼児クラス","teacher":"IBU","genre":"K-POP","level":"幼児","min":50,"id":17},
     {"studio":"西田辺","day":"金","time":"17:15–18:25","name":"K-POP & Girls 入門クラス","teacher":"IBU","genre":"K-POP","level":"入門","min":70,"id":18},
     {"studio":"西田辺","day":"金","time":"18:30–19:40","name":"Freestyle Jazz 初中級","teacher":"AMI","genre":"ジャズ","level":"初中級","min":70,"id":15},
-    {"studio":"西田辺","day":"金","time":"19:50–21:00","name":"Freestyle Jazz 上級","teacher":"AMI","genre":"ジャズ","level":"上級","min":70,"id":16},
+    {"studio":"西田辺","day":"金","time":"19:50–21:00","name":"Freestyle Jazz 上級","teacher":"AMI","genre":"ジャズ","level":"上級","min":70,"id":16,"hidden":true,"memo":"体験枠0のあいだは隠す（AMIへの連絡後に枠を開けたら hidden を外す）"},
     {"studio":"西田辺","day":"土","time":"13:00–13:50","name":"Jazz 入門","teacher":"HINANO","genre":"ジャズ","level":"入門","min":50,"id":34},
     {"studio":"西田辺","day":"土","time":"19:40–20:50","name":"K-POP & コレオクラス","teacher":"IBU","genre":"K-POP","level":"その他","min":70,"id":19,"for":["elementary","teen","adult"],"note":"対象は体験時にご相談ください"},
 
     {"studio":"長居","day":"月","time":"19:05–20:15","name":"HIPHOP初中級","teacher":"SOUTA","genre":"HIPHOP","level":"初中級","min":70,"id":12},
     {"studio":"長居","day":"水","time":"20:15–21:25","name":"HIPHOP初中級","teacher":"MAOO","genre":"HIPHOP","level":"初中級","min":70,"id":12},
-    {"studio":"長居","day":"水","time":"21:30–22:40","name":"HIPHOP 上級・強化クラス","teacher":"MAOO","genre":"HIPHOP","level":"上級","min":70,"id":23},
+    {"studio":"長居","day":"水","time":"21:30–22:40","name":"中高生一般HIPHOP上級","teacher":"MAOO","genre":"HIPHOP","level":"上級","min":70,"id":23,"for":["teen","adult"],"note":"ダンス経験のある方向け・中学生以上が目安"},
     {"studio":"長居","day":"木","time":"16:05–16:55","name":"ブレイク入門クラス","teacher":"HAYATE","genre":"ブレイク","level":"入門","min":50,"id":24},
     {"studio":"長居","day":"木","time":"16:55–18:05","name":"ブレイク初中級","teacher":"HAYATE","genre":"ブレイク","level":"初中級","min":70,"id":11},
-    {"studio":"長居","day":"木","time":"18:05–19:15","name":"ブレイク上級クラス","teacher":"HAYATE","genre":"ブレイク","level":"上級","min":70,"id":26},
+    {"studio":"長居","day":"木","time":"18:05–19:15","name":"ブレイク上級クラス","teacher":"HAYATE","genre":"ブレイク","level":"上級","min":70,"id":26,"hidden":true,"memo":"体験枠0のあいだは隠す（HAYATEへの連絡後に枠を開けたら hidden を外す）"},
     {"studio":"長居","day":"金","time":"18:15–19:05","name":"HIPHOP入門クラス","teacher":"MAHO","genre":"HIPHOP","level":"入門","min":50,"id":27},
     {"studio":"長居","day":"金","time":"19:05–20:15","name":"HIPHOP初中級","teacher":"MAHO","genre":"HIPHOP","level":"初中級","min":70,"id":12},
     {"studio":"長居","day":"土","time":"13:15–14:05","name":"HIPHOP幼児クラス","teacher":"YURA","genre":"HIPHOP","level":"幼児","min":50,"id":29},
@@ -383,7 +383,7 @@ const DEFAULT_FOR = {
   '入門': ['elementary','teen'],
   '大人': ['adult'],
   '初中級': [],   // 講師判断のため体験の入口には出さない
-  '上級':   [],
+  '上級':   ['elementary','teen','adult'],  // 経験者だけ（candidates で絞る・2026-10-08決定）
   'その他': []    // 対象は必ず "for" で明示する
 };
 function audienceOk(c, p){
@@ -426,6 +426,8 @@ function candidates(p){
     if(!audienceOk(c, p)) return false;
     // 「その他（応相談）」枠は、経験のある方にだけ候補として出す
     if(c.level==='その他' && p.who!=='adult' && p.exp!=='exp') return false;
+    // 上級は「ダンス経験のある方なら体験から直接」（2026-10-08 Junya決定）＝経験者にだけ出す
+    if(c.level==='上級' && p.exp!=='exp') return false;
     return true;
   });
 }
@@ -508,7 +510,7 @@ function foot(){
     <a class="cta line" href="${DATA.lineUrl}" target="_blank" rel="noopener" data-t="line" data-from="result-foot">クラス選びを公式LINEで相談する</a>
     <p class="note">
       ・体験は全クラス<b>1回無料</b>です（複数クラスの体験もOK）／保護者の方のご見学も大歓迎です<br>
-      ・初中級・上級クラスは、担当の先生がご様子を見てご案内しています<br>
+      ・初中級クラスは、担当の先生がご様子を見てご案内しています。上級クラスは、ダンス経験のある方なら体験から受けられます<br>
       ・レッスンは原則 第1〜第4週の開講です（第5週は休講）<br>
       ・別途 入会金 6,600円／クラス情報 ${DATA.updated} 現在
     </p>

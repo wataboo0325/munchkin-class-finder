@@ -92,6 +92,10 @@
     border-radius:999px;font-size:13.5px;color:var(--accent-dark);font-weight:700;background:#fff}
   .more > summary::-webkit-details-marker{display:none}
   .more[open] > summary{margin-bottom:12px}
+  /* 0件・候補が多いときに、カードより先に出す相談の入口 */
+  .ask{background:#f1fbf4;border:1px solid #c9ecd4;border-radius:var(--radius);padding:12px 14px;margin:0 0 18px}
+  .ask p{margin:0 0 10px;font-size:13.5px;line-height:1.7}
+  .ask .cta{margin:0}
 </style>
 </head>
 <body>
@@ -505,9 +509,23 @@ function msgFor(p){
   if(p.who==='adult') return `<div class="msg">大人の方は<b>月謝制のほか、チケット制（1回から）</b>でもご参加いただけます。はじめての方がほとんどです。</div>`;
   return '';
 }
+/* 公式LINEへの相談の入口（文言と記録用の from だけ変えて使い回す） */
+function askLine(from, text, btn){
+  return `<div class="ask"><p>${text}</p>
+    <a class="cta line" href="${DATA.lineUrl}" target="_blank" rel="noopener" data-t="line" data-from="${from}">${btn}</a></div>`;
+}
+/* おまかせのときは同じジャンルが並ばないよう、ジャンルを1つずつ順番に出す */
+function mixGenres(items){
+  const by = {}, order = [];
+  items.forEach(c=>{ if(!by[c.genre]){ by[c.genre]=[]; order.push(c.genre); } by[c.genre].push(c); });
+  const out = [];
+  while(out.length < items.length) order.forEach(g=>{ if(by[g].length) out.push(by[g].shift()); });
+  return out;
+}
 function foot(){
   return `<div class="foot">
     <a class="cta line" href="${DATA.lineUrl}" target="_blank" rel="noopener" data-t="line" data-from="result-foot">クラス選びを公式LINEで相談する</a>
+    <p class="note" style="margin-top:8px">予約画面でうまく進まないときも、公式LINEからお気軽にどうぞ😊</p>
     <p class="note">
       ・体験は全クラス<b>1回無料</b>です（複数クラスの体験もOK）／保護者の方のご見学も大歓迎です<br>
       ・初中級クラスは、担当の先生がご様子を見てご案内しています。上級クラスは、ダンス経験のある方なら体験から受けられます<br>
@@ -563,7 +581,18 @@ function render(){
     const genreOk = r.near.filter(c=> !missOf(c,p).some(m=>m.k==='genre'));
     const others  = r.near.filter(c=> !genreOk.includes(c));
 
-    if(r.exact.length){
+    // 候補が多すぎると選べずに帰ってしまう（5件以上出た人は予約ボタン0・2026-10-25ログ）
+    // → まず3件だけ見せ、「迷ったらLINE」を先に置く
+    const many = r.exact.length >= 5;
+
+    if(r.exact.length && many){
+      const picks = (p.genres||[]).length ? r.exact : mixGenres(r.exact);
+      html += list(picks, p, 3, `<p class="cnt"><b>${r.exact.length}件</b>のクラスがご希望に合いました。まずはこちらから👇</p>`);
+      html += askLine('many', '体験は<b>何クラスでも無料</b>です✨ どれにするか迷ったら、公式LINEで「どのクラスが合いそう？」と気軽に聞いてください。', '公式LINEでどのクラスが合うか聞く');
+      if(r.near.length){
+        html += list(r.near, p, CAP, `<p class="cnt sub">ほかに、条件は少し違いますがこちらもご案内できます（${r.near.length}件）</p>`);
+      }
+    }else if(r.exact.length){
       html += list(r.exact, p, CAP, `<p class="cnt"><b>${r.exact.length}件</b>のクラスがご希望に合いました</p>`);
       if(r.near.length){
         html += list(r.near, p, CAP, `<p class="cnt sub">ほかに、条件は少し違いますがこちらもご案内できます（${r.near.length}件）</p>`);
@@ -573,8 +602,10 @@ function render(){
       const c0  = genreOk[0];
       const fix = missOf(c0,p).map(m=> m.k==='day' ? `${esc(c0.day)}曜` : `${esc(c0.studio)}スタジオ`).join('・');
       const asked = [ans.days.length?esc(ans.days.join('・'))+'曜':'', esc(ans.studios.join('・'))].filter(Boolean).join('／');
+      const fitWhat = p.who==='adult' ? 'ご希望のジャンル' : 'お子さまの年齢とご希望のジャンル';
       html += `<div class="msg none"><b>${fix}なら、ぴったりのクラスがあります。</b><br>
-        ${asked} では見つかりませんでしたが、下のクラスは<b>お子さまの年齢とご希望のジャンルに合っています</b>。ご都合が合えば、ぜひ体験してみてください。</div>`;
+        ${asked} では見つかりませんでしたが、下のクラスは<b>${fitWhat}に合っています</b>。ご都合が合えば、ぜひ体験してみてください。</div>`;
+      html += askLine('zero-top', '通いやすい曜日・場所が合わないときは、公式LINEでご相談ください。ご都合に近いクラスを一緒にお探しします😊', '公式LINEで通えるクラスを相談する');
       html += list(genreOk, p, CAP, `<p class="cnt">おすすめのクラス（${genreOk.length}件）</p>`);
       if(others.length){
         html += list(others, p, CAP, `<p class="cnt sub">ほかの候補（${others.length}件）</p>`);
@@ -582,7 +613,8 @@ function render(){
     }else{
       const want = [ans.days.length?esc(ans.days.join('・'))+'曜':'', esc(ans.studios.join('・')), esc((p.genres||[]).join('・'))].filter(Boolean).join('／');
       html += `<div class="msg none"><b>ご希望どおりのクラスは、いまのところありません。</b><br>
-        ${want} でのご案内ができず申し訳ありません。近いクラスを下にご案内します。ご相談いただければ、ご事情に合わせてお探しします。</div>`;
+        ${want} でのご案内ができず申し訳ありません。近いクラスを下にご案内します。</div>`;
+      html += askLine('zero-top', 'ご希望をお聞かせいただければ、合いそうなクラスを一緒にお探しします😊 公式LINEからお気軽にどうぞ。', '公式LINEでクラスを相談する');
       if(r.near.length){
         html += list(r.near, p, CAP, `<p class="cnt sub">こちらのクラスならご案内できます（${r.near.length}件）</p>`);
       }

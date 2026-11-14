@@ -462,7 +462,9 @@ function missOf(c, p){
 }
 /* 1人ぶんの結果（希望どおり／条件が少し違う に分け、通いやすさ優先で並べる） */
 function resultFor(p){
-  const pen = c => missOf(c,p).reduce((s,m)=> s + (m.k==='genre' ? 1 : 3), 0);  // 曜日・スタジオは重い
+  // 担当が変わるかもしれない先生のクラスは、同じ条件の中で後ろに回す（消さない・2026-11-14 Junya）
+  const LATER = ['IBU','KANO','HINANO'];
+  const pen = c => missOf(c,p).reduce((s,m)=> s + (m.k==='genre' ? 1 : 3), 0) + (LATER.includes(c.teacher) ? 0.5 : 0);  // 曜日・スタジオは重い
   const all = candidates(p).sort((a,b)=> pen(a)-pen(b));
   return {
     exact: all.filter(c=> missOf(c,p).length===0),

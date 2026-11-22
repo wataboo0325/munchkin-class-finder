@@ -68,7 +68,7 @@
       '<button class="x" aria-label="閉じる">✕</button>' +
       'どのクラスが合うか<br><b>30秒で診断</b>できます🩰</div>');
 
-    var panel = el('<div id="mkfinder-panel"><iframe title="クラス診断" loading="lazy"></iframe></div>');
+    var panel = el('<div id="mkfinder-panel"><iframe title="クラス診断" loading="lazy" allow="geolocation"></iframe></div>');
 
     document.body.appendChild(bubble);
     document.body.appendChild(panel);
